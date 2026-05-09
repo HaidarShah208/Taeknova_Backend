@@ -1,0 +1,34 @@
+import { Repository } from "typeorm";
+import { AppDataSource } from "@database/data-source";
+import { User } from "@modules/users/user.entity";
+
+export class UserRepository {
+  private readonly repo: Repository<User> = AppDataSource.getRepository(User);
+
+  async create(data: Partial<User>): Promise<User> {
+    const user = this.repo.create(data);
+    return this.repo.save(user);
+  }
+
+  async findByEmail(email: string, includePassword = false): Promise<User | null> {
+    return this.repo.findOne({
+      where: { email },
+      select: includePassword
+        ? {
+            id: true,
+            email: true,
+            fullName: true,
+            passwordHash: true,
+            role: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        : undefined,
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.repo.findOne({ where: { id } });
+  }
+}
