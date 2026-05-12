@@ -20,6 +20,15 @@ export class Order extends BaseEntity {
   @Column({ type: "enum", enum: PaymentStatus, default: PaymentStatus.AWAITING })
   paymentStatus!: PaymentStatus;
 
+  @Column({ type: "varchar", length: 40, nullable: true })
+  paymentMethod?: string | null;
+
+  @Column({ type: "text", nullable: true })
+  paymentProofUrl?: string | null;
+
+  @Column({ type: "numeric", precision: 12, scale: 2, default: "0" })
+  codFeeAmount!: string;
+
   @Column({ type: "jsonb" })
   shippingAddressSnapshot!: Record<string, unknown>;
 

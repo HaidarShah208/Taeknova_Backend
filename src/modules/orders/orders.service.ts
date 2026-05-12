@@ -3,16 +3,18 @@ import { Address } from "@modules/addresses/address.entity";
 import { CartItem } from "@modules/cart/cartItem.entity";
 import { Order } from "@modules/orders/order.entity";
 import { OrderItem } from "@modules/orders/orderItem.entity";
-import { OrderStatus, PaymentStatus } from "@modules/orders/order.types";
+import { OrderStatus, PaymentStatus, CheckoutPaymentMethod } from "@modules/orders/order.types";
 import { OrderRepository } from "@modules/orders/order.repository";
 import { ProductStatus } from "@modules/products/product.types";
 import { Product } from "@modules/products/product.entity";
 import { ProductVariant } from "@modules/products/productVariant.entity";
+import { UploadService } from "@modules/uploads/upload.service";
 import { StatusCodes } from "http-status-codes";
 import { ApiError } from "@common/exceptions/ApiError";
 
 const FREE_SHIPPING_THRESHOLD = 150;
 const STANDARD_SHIPPING = 9.99;
+const COD_FEE_PKR = 100;
 
 function computeShipping(subtotal: number): number {
   return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
@@ -33,7 +35,15 @@ function addressSnapshot(addr: Address): Record<string, unknown> {
 }
 
 export class OrdersService {
-  constructor(private readonly orderRepository = new OrderRepository()) {}
+  constructor(
+    private readonly orderRepository = new OrderRepository(),
+    private readonly uploadService = new UploadService(),
+  ) {}
+
+  async uploadPaymentProofImage(fileBuffer: Buffer): Promise<{ url: string }> {
+    const uploaded = await this.uploadService.uploadPaymentProof(fileBuffer);
+    return { url: uploaded.secure_url };
+  }
 
   async listMine(userId: string, page: number, limit: number) {
     const [items, total] = await this.orderRepository.findByUserPaginated(userId, page, limit);
@@ -129,8 +139,18 @@ export class OrdersService {
     addressId: string;
     shippingMethod?: string;
     customerNotes?: string;
+    paymentMethod: CheckoutPaymentMethod;
+    paymentProofUrl?: string | null;
   }): Promise<Order> {
     return AppDataSource.transaction(async (manager) => {
+      const allowed = new Set<string>(Object.values(CheckoutPaymentMethod));
+      if (!allowed.has(params.paymentMethod)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid payment method");
+      }
+      if (params.paymentMethod !== CheckoutPaymentMethod.COD && !params.paymentProofUrl?.trim()) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Payment proof is required for this payment method");
+      }
+
       const cartRepo = manager.getRepository(CartItem);
       const variantRepo = manager.getRepository(ProductVariant);
       const productRepo = manager.getRepository(Product);
@@ -184,13 +204,19 @@ export class OrdersService {
 
       const shippingAmount = computeShipping(subtotal);
       const taxAmount = 0;
-      const totalAmount = subtotal + shippingAmount + taxAmount;
+      const codFee = params.paymentMethod === CheckoutPaymentMethod.COD ? COD_FEE_PKR : 0;
+      const totalAmount = subtotal + shippingAmount + taxAmount + codFee;
 
       const order = orderRepo.create({
         userId: params.userId,
         /** Awaiting admin approval before fulfillment (see admin approve / ship flows). */
         status: OrderStatus.PENDING,
-        paymentStatus: PaymentStatus.PAID,
+        paymentStatus:
+          params.paymentMethod === CheckoutPaymentMethod.COD ? PaymentStatus.PAID : PaymentStatus.AWAITING,
+        paymentMethod: params.paymentMethod,
+        paymentProofUrl:
+          params.paymentMethod === CheckoutPaymentMethod.COD ? null : (params.paymentProofUrl ?? null),
+        codFeeAmount: codFee.toFixed(2),
         shippingAddressSnapshot: addressSnapshot(address),
         currency: "USD",
         subtotalAmount: subtotal.toFixed(2),

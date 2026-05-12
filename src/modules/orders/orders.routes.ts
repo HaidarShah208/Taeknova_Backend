@@ -6,12 +6,18 @@ import { asyncHandler } from "@common/utils/asyncHandler";
 import { validate } from "@common/middleware/validate";
 import { OrdersController } from "@modules/orders/orders.controller";
 import { orderCreateSchema, orderIdParamSchema, orderListQuerySchema } from "@modules/orders/orders.schema";
+import { upload } from "@modules/uploads/upload.middleware";
 
 const ordersController = new OrdersController();
 export const ordersRouter = Router();
 
 ordersRouter.use(authGuard);
 ordersRouter.get("/", validate(orderListQuerySchema), asyncHandler(ordersController.listMine));
+ordersRouter.post(
+  "/payment-proof",
+  upload.single("image"),
+  asyncHandler(ordersController.uploadPaymentProof),
+);
 ordersRouter.get(
   "/admin",
   roleGuard(UserRole.ADMIN),

@@ -44,8 +44,19 @@ export class OrdersController {
       addressId: req.body.addressId,
       shippingMethod: req.body.shippingMethod,
       customerNotes: req.body.customerNotes,
+      paymentMethod: req.body.paymentMethod,
+      paymentProofUrl: req.body.paymentProofUrl ?? null,
     });
     sendResponse(res, StatusCodes.CREATED, "Order placed", data);
+  };
+
+  uploadPaymentProof = async (req: Request, res: Response): Promise<void> => {
+    if (!req.file?.buffer) {
+      sendResponse(res, StatusCodes.BAD_REQUEST, "Image file is required");
+      return;
+    }
+    const data = await this.ordersService.uploadPaymentProofImage(req.file.buffer);
+    sendResponse(res, StatusCodes.OK, "Proof uploaded", data);
   };
 
   getMine = async (req: Request, res: Response): Promise<void> => {
