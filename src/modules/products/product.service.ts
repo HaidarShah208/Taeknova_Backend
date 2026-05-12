@@ -56,6 +56,8 @@ export class ProductService {
       createdById: adminId,
       isFeatured: payload.isFeatured ?? false,
       stockStatus: this.evaluateStockStatus(totalStock),
+      /** Admin CMS: new items are published; use edit to change status if needed. */
+      status: ProductStatus.APPROVED,
     });
 
     const savedProduct = await this.productRepository.save(product);

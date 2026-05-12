@@ -23,7 +23,10 @@ export class ProductRepository {
 
   async findPaginated(options: { page: number; limit: number; search?: string; status?: string }) {
     const { page, limit, search, status } = options;
-    const qb = this.repo.createQueryBuilder("product").leftJoinAndSelect("product.variants", "variant");
+    const qb = this.repo
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.variants", "variant")
+      .leftJoinAndSelect("product.category", "category");
 
     if (search) qb.andWhere("product.name ILIKE :search", { search: `%${search}%` });
     if (status) qb.andWhere("product.status = :status", { status });
