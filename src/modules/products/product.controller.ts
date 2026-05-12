@@ -45,4 +45,13 @@ export class ProductController {
     const data = await this.productService.uploadImage(String(req.params.productId), req.file.buffer);
     sendResponse(res, StatusCodes.OK, "Product image uploaded", data);
   };
+
+  patchVariant = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.productService.patchVariantAttributes(
+      String(req.params.productId),
+      String(req.params.variantId),
+      req.body as { size: string; color: string },
+    );
+    sendResponse(res, StatusCodes.OK, "Variant updated", data);
+  };
 }

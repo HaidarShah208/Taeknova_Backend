@@ -44,6 +44,17 @@ export const updateProductSchema = z.object({
     .refine((value) => Object.keys(value).length > 0, "At least one field is required"),
 });
 
+export const patchProductVariantSchema = z.object({
+  params: z.object({
+    productId: z.string().uuid(),
+    variantId: z.string().uuid(),
+  }),
+  body: z.object({
+    size: z.string().min(1).max(30),
+    color: z.string().min(1).max(50),
+  }),
+});
+
 export const listProductQuerySchema = z.object({
   query: z.object({
     page: z.coerce.number().int().min(1).default(1),

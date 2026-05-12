@@ -8,6 +8,8 @@ export const catalogListQuerySchema = z.object({
     categoryId: z.string().uuid().optional(),
     minPrice: z.coerce.number().min(0).optional(),
     maxPrice: z.coerce.number().min(0).optional(),
+    size: z.string().min(1).max(30).optional(),
+    color: z.string().min(1).max(50).optional(),
     sort: z.enum(["newest", "price_asc", "price_desc", "name_asc"]).optional(),
   }),
 });
@@ -42,6 +44,8 @@ export const catalogCategorySlugQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().max(200).optional(),
     sort: z.enum(["newest", "price_asc", "price_desc", "name_asc"]).optional(),
+    size: z.string().min(1).max(30).optional(),
+    color: z.string().min(1).max(50).optional(),
   }),
 });
 

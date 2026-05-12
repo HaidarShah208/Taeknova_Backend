@@ -127,4 +127,22 @@ export class ProductService {
     product.imageUrls = [...(product.imageUrls ?? []), uploaded.secure_url];
     return this.productRepository.save(product);
   }
+
+  async patchVariantAttributes(productId: string, variantId: string, body: { size: string; color: string }) {
+    const variant = await this.variantRepository.findById(variantId);
+    if (!variant || variant.productId !== productId) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Variant not found");
+    }
+    const siblings = await this.variantRepository.findByProduct(productId);
+    const conflict = siblings.some(
+      (v) => v.id !== variantId && v.size === body.size && v.color === body.color,
+    );
+    if (conflict) {
+      throw new ApiError(StatusCodes.CONFLICT, "Another variant already uses this size and color");
+    }
+    variant.size = body.size;
+    variant.color = body.color;
+    await this.variantRepository.save(variant);
+    return this.productRepository.findById(productId);
+  }
 }

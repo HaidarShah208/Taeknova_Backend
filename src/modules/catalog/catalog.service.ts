@@ -16,6 +16,8 @@ export class CatalogService {
     categoryId?: string;
     minPrice?: number;
     maxPrice?: number;
+    size?: string;
+    color?: string;
     sort?: CatalogSort;
   }) {
     const [items, total] = await this.catalogRepository.findPublicPaginated(params);
@@ -47,10 +49,20 @@ export class CatalogService {
   }
 
   listPublicCategories() {
-    return this.categoryRepository.findPublicActive();
+    return this.categoryRepository.findPublicActiveForCatalog();
   }
 
-  async productsByCategorySlug(slug: string, params: { page: number; limit: number; sort?: CatalogSort; search?: string }) {
+  async productsByCategorySlug(
+    slug: string,
+    params: {
+      page: number;
+      limit: number;
+      sort?: CatalogSort;
+      search?: string;
+      size?: string;
+      color?: string;
+    },
+  ) {
     const category = await this.categoryRepository.findBySlug(slug);
     if (!category || !category.isActive) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");

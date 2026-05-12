@@ -5,13 +5,18 @@ import { roleGuard } from "@common/guards/roleGuard";
 import { validate } from "@common/middleware/validate";
 import { asyncHandler } from "@common/utils/asyncHandler";
 import { ProductController } from "@modules/products/product.controller";
-import { createProductSchema, listProductQuerySchema, productIdParamSchema, updateProductSchema } from "@modules/products/product.schema";
+import { createProductSchema, listProductQuerySchema, patchProductVariantSchema, productIdParamSchema, updateProductSchema } from "@modules/products/product.schema";
 import { upload } from "@modules/uploads/upload.middleware";
 
 const productController = new ProductController();
 export const productsRouter = Router();
 
 productsRouter.use(authGuard, roleGuard(UserRole.ADMIN));
+productsRouter.patch(
+  "/:productId/variants/:variantId",
+  validate(patchProductVariantSchema),
+  asyncHandler(productController.patchVariant),
+);
 productsRouter.get("/", validate(listProductQuerySchema), asyncHandler(productController.list));
 productsRouter.post("/", validate(createProductSchema), asyncHandler(productController.create));
 productsRouter.patch("/:productId", validate(updateProductSchema), asyncHandler(productController.update));

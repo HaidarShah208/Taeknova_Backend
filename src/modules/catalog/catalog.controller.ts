@@ -19,6 +19,8 @@ export class CatalogController {
       categoryId: q.categoryId,
       minPrice: q.minPrice !== undefined ? Number(q.minPrice) : undefined,
       maxPrice: q.maxPrice !== undefined ? Number(q.maxPrice) : undefined,
+      size: q.size,
+      color: q.color,
       sort: q.sort as "newest" | "price_asc" | "price_desc" | "name_asc" | undefined,
     });
     sendResponse(res, StatusCodes.OK, "Products retrieved", data);
@@ -53,6 +55,8 @@ export class CatalogController {
       limit: Number(q.limit) || 20,
       sort: q.sort as "newest" | "price_asc" | "price_desc" | "name_asc" | undefined,
       search: q.search,
+      size: q.size,
+      color: q.color,
     });
     sendResponse(res, StatusCodes.OK, "Products retrieved", data);
   };

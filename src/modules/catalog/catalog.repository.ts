@@ -23,6 +23,8 @@ export class CatalogRepository {
     categoryId?: string;
     minPrice?: number;
     maxPrice?: number;
+    size?: string;
+    color?: string;
     sort?: CatalogSort;
   }): Promise<[Product[], number]> {
     const qb = this.baseApprovedQuery();
@@ -37,6 +39,18 @@ export class CatalogRepository {
     }
     if (options.maxPrice !== undefined) {
       qb.andWhere("p.basePrice <= :maxPrice", { maxPrice: options.maxPrice });
+    }
+    if (options.size) {
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM product_variants pv_sz WHERE pv_sz."productId" = p.id AND pv_sz.size = :filterSize)`,
+        { filterSize: options.size },
+      );
+    }
+    if (options.color) {
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM product_variants pv_co WHERE pv_co."productId" = p.id AND pv_co.color = :filterColor)`,
+        { filterColor: options.color },
+      );
     }
     const sort = options.sort ?? "newest";
     if (sort === "price_asc") qb.orderBy("p.basePrice", "ASC");
