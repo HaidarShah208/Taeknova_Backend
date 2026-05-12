@@ -2,11 +2,28 @@ import bcrypt from "bcrypt";
 import { StatusCodes } from "http-status-codes";
 import { UserRole } from "@common/constants/roles";
 import { ApiError } from "@common/exceptions/ApiError";
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@common/utils/jwt";
+import {
+  createSignedRefreshToken,
+  signAccessToken,
+  verifyRefreshToken,
+} from "@common/utils/jwt";
+import { RefreshTokenRepository } from "@modules/auth/refreshToken.repository";
 import { UserRepository } from "@modules/users/user.repository";
 
 export class AuthService {
-  constructor(private readonly userRepository = new UserRepository()) {}
+  constructor(
+    private readonly userRepository = new UserRepository(),
+    private readonly refreshTokenRepository = new RefreshTokenRepository(),
+  ) {}
+
+  private async persistRefreshSession(userId: string, signed: ReturnType<typeof createSignedRefreshToken>) {
+    const row = this.refreshTokenRepository.create({
+      userId,
+      jti: signed.jti,
+      expiresAt: new Date(signed.expiresAtMs),
+    });
+    await this.refreshTokenRepository.save(row);
+  }
 
   async login(email: string, password: string) {
     const user = await this.userRepository.findByEmail(email.toLowerCase(), true);
@@ -17,9 +34,13 @@ export class AuthService {
     if (!isValidPassword) throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
 
     const payload = { id: user.id, role: user.role };
+    const accessToken = signAccessToken(payload);
+    const refresh = createSignedRefreshToken(payload);
+    await this.persistRefreshSession(user.id, refresh);
+
     return {
-      accessToken: signAccessToken(payload),
-      refreshToken: signRefreshToken(payload),
+      accessToken,
+      refreshToken: refresh.token,
       user: {
         id: user.id,
         email: user.email,
@@ -29,17 +50,45 @@ export class AuthService {
     };
   }
 
-  async refresh(refreshToken: string) {
-    const payload = verifyRefreshToken(refreshToken);
-    const user = await this.userRepository.findById(payload.id);
+  async refresh(rawRefreshToken: string) {
+    let decoded: ReturnType<typeof verifyRefreshToken>;
+    try {
+      decoded = verifyRefreshToken(rawRefreshToken);
+    } catch {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token");
+    }
+
+    const session = await this.refreshTokenRepository.findActiveByJti(decoded.jti);
+    if (!session || session.userId !== decoded.id) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Refresh session expired or revoked");
+    }
+
+    const user = await this.userRepository.findById(decoded.id);
     if (!user || !user.isActive) {
       throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token");
     }
 
+    await this.refreshTokenRepository.revokeByJti(decoded.jti);
+
+    const payload = { id: user.id, role: user.role };
+    const accessToken = signAccessToken(payload);
+    const nextRefresh = createSignedRefreshToken(payload);
+    await this.persistRefreshSession(user.id, nextRefresh);
+
     return {
-      accessToken: signAccessToken({ id: user.id, role: user.role }),
-      refreshToken: signRefreshToken({ id: user.id, role: user.role }),
+      accessToken,
+      refreshToken: nextRefresh.token,
     };
+  }
+
+  async revokeRefreshToken(rawRefreshToken: string | undefined): Promise<void> {
+    if (!rawRefreshToken) return;
+    try {
+      const decoded = verifyRefreshToken(rawRefreshToken);
+      await this.refreshTokenRepository.revokeByJti(decoded.jti);
+    } catch {
+      /* ignore malformed tokens */
+    }
   }
 
   async register(fullName: string, email: string, password: string) {
@@ -57,9 +106,13 @@ export class AuthService {
     });
 
     const payload = { id: user.id, role: user.role };
+    const accessToken = signAccessToken(payload);
+    const refresh = createSignedRefreshToken(payload);
+    await this.persistRefreshSession(user.id, refresh);
+
     return {
-      accessToken: signAccessToken(payload),
-      refreshToken: signRefreshToken(payload),
+      accessToken,
+      refreshToken: refresh.token,
       user: {
         id: user.id,
         email: user.email,

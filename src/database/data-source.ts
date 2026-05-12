@@ -3,6 +3,7 @@ import path from "path";
 import { DataSource } from "typeorm";
 import { env } from "@config/env";
 import { Address } from "@modules/addresses/address.entity";
+import { RefreshToken } from "@modules/auth/refreshToken.entity";
 import { CartItem } from "@modules/cart/cartItem.entity";
 import { Category } from "@modules/categories/category.entity";
 import { InventoryLog } from "@modules/inventory/inventoryLog.entity";
@@ -31,6 +32,7 @@ export const AppDataSource = new DataSource({
     Order,
     OrderItem,
     Review,
+    RefreshToken,
   ],
   // Single glob: avoids loading the same migration twice when both src/ and dist/ exist (e.g. after `npm run build`).
   migrations: [path.join(__dirname, "migrations", path.extname(__filename) === ".ts" ? "*.ts" : "*.js")],

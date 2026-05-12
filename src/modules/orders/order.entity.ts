@@ -44,6 +44,10 @@ export class Order extends BaseEntity {
   @Column({ type: "text", nullable: true })
   customerNotes?: string;
 
+  /** Human-facing id for invoices / support (set at order creation). */
+  @Column({ type: "varchar", length: 32, nullable: true, unique: true })
+  reference?: string | null;
+
   @OneToMany(() => OrderItem, (line) => line.order, { cascade: true })
   items!: OrderItem[];
 }

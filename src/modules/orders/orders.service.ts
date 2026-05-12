@@ -6,6 +6,7 @@ import { OrderItem } from "@modules/orders/orderItem.entity";
 import { OrderStatus, PaymentStatus } from "@modules/orders/order.types";
 import { OrderRepository } from "@modules/orders/order.repository";
 import { ProductStatus } from "@modules/products/product.types";
+import { Product } from "@modules/products/product.entity";
 import { ProductVariant } from "@modules/products/productVariant.entity";
 import { StatusCodes } from "http-status-codes";
 import { ApiError } from "@common/exceptions/ApiError";
@@ -132,6 +133,7 @@ export class OrdersService {
     return AppDataSource.transaction(async (manager) => {
       const cartRepo = manager.getRepository(CartItem);
       const variantRepo = manager.getRepository(ProductVariant);
+      const productRepo = manager.getRepository(Product);
       const addressRepo = manager.getRepository(Address);
       const orderRepo = manager.getRepository(Order);
       const orderItemRepo = manager.getRepository(OrderItem);
@@ -155,20 +157,25 @@ export class OrdersService {
       }> = [];
 
       for (const row of cartRows) {
-        const variant = row.variant;
-        if (!variant?.product) throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid cart line");
-        if (variant.product.status !== ProductStatus.APPROVED) {
+        const variant = await variantRepo.findOne({
+          where: { id: row.variantId },
+          lock: { mode: "pessimistic_write" },
+        });
+        if (!variant) throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid cart line");
+        const product = await productRepo.findOne({ where: { id: variant.productId } });
+        if (!product) throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid cart line");
+        if (product.status !== ProductStatus.APPROVED) {
           throw new ApiError(StatusCodes.BAD_REQUEST, "A product in your cart is no longer available");
         }
         if (row.quantity < 1 || row.quantity > variant.stockQuantity) {
           throw new ApiError(StatusCodes.BAD_REQUEST, "Insufficient stock for one or more items");
         }
-        const unit = Number(variant.variantPrice ?? variant.product.basePrice);
+        const unit = Number(variant.variantPrice ?? product.basePrice);
         const lineTotal = unit * row.quantity;
         subtotal += lineTotal;
         prepared.push({
           variant,
-          productName: variant.product.name,
+          productName: product.name,
           quantity: row.quantity,
           unit,
           lineTotal,
@@ -194,6 +201,8 @@ export class OrdersService {
         customerNotes: params.customerNotes,
       });
       const saved = await orderRepo.save(order);
+      saved.reference = `TN-${saved.id.replace(/-/g, "").slice(0, 10).toUpperCase()}`;
+      await orderRepo.save(saved);
 
       for (const line of prepared) {
         await orderItemRepo.save(

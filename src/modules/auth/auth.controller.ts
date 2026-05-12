@@ -1,8 +1,27 @@
-import { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { env } from "@config/env";
 import { sendResponse } from "@common/helpers/apiResponse";
+import { decodeTokenExpMs } from "@common/utils/jwt";
 import { AuthService } from "@modules/auth/auth.service";
+
+function refreshCookieOptions(maxAgeMs: number): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite: env.COOKIE_SAMESITE,
+    path: "/",
+    maxAge: maxAgeMs,
+  };
+}
+
+function refreshCookieClearOptions(): CookieOptions {
+  return {
+    path: "/",
+    sameSite: env.COOKIE_SAMESITE,
+    secure: env.COOKIE_SECURE,
+  };
+}
 
 export class AuthController {
   constructor(private readonly authService = new AuthService()) {}
@@ -11,12 +30,9 @@ export class AuthController {
     const { email, password } = req.body;
     const data = await this.authService.login(email, password);
 
-    res.cookie("refreshToken", data.refreshToken, {
-      httpOnly: true,
-      secure: env.COOKIE_SECURE,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    const expMs = decodeTokenExpMs(data.refreshToken);
+    const maxAge = expMs ? Math.max(0, expMs - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+    res.cookie("refreshToken", data.refreshToken, refreshCookieOptions(maxAge));
 
     sendResponse(res, StatusCodes.OK, "Login successful", {
       accessToken: data.accessToken,
@@ -35,32 +51,28 @@ export class AuthController {
 
     const data = await this.authService.refresh(refreshToken);
 
-    res.cookie("refreshToken", data.refreshToken, {
-      httpOnly: true,
-      secure: env.COOKIE_SECURE,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    const expMs = decodeTokenExpMs(data.refreshToken);
+    const maxAge = expMs ? Math.max(0, expMs - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+    res.cookie("refreshToken", data.refreshToken, refreshCookieOptions(maxAge));
 
     sendResponse(res, StatusCodes.OK, "Token refreshed", {
       accessToken: data.accessToken,
     });
   };
 
-  logout = async (_req: Request, res: Response): Promise<void> => {
-    res.clearCookie("refreshToken");
+  logout = async (req: Request, res: Response): Promise<void> => {
+    const token = req.cookies.refreshToken as string | undefined;
+    await this.authService.revokeRefreshToken(token);
+    res.clearCookie("refreshToken", refreshCookieClearOptions());
     sendResponse(res, StatusCodes.OK, "Logout successful");
   };
 
   register = async (req: Request, res: Response): Promise<void> => {
     const { fullName, email, password } = req.body;
     const data = await this.authService.register(fullName, email, password);
-    res.cookie("refreshToken", data.refreshToken, {
-      httpOnly: true,
-      secure: env.COOKIE_SECURE,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    const expMs = decodeTokenExpMs(data.refreshToken);
+    const maxAge = expMs ? Math.max(0, expMs - Date.now()) : 7 * 24 * 60 * 60 * 1000;
+    res.cookie("refreshToken", data.refreshToken, refreshCookieOptions(maxAge));
     sendResponse(res, StatusCodes.CREATED, "Account created", {
       accessToken: data.accessToken,
       user: data.user,

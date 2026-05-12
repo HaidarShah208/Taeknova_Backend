@@ -13,6 +13,8 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   COOKIE_SECURE: z.coerce.boolean().default(false),
+  /** `strict` is strictest; use `lax` when dev SPA and API run on different ports (same-site cookies). */
+  COOKIE_SAMESITE: z.enum(["strict", "lax", "none"]).default("lax"),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
