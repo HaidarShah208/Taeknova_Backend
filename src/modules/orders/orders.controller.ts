@@ -18,6 +18,26 @@ export class OrdersController {
     sendResponse(res, StatusCodes.OK, "Orders retrieved", data);
   };
 
+  approveAdmin = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.ordersService.approveByAdmin(String(req.params.orderId));
+    sendResponse(res, StatusCodes.OK, "Order accepted", data);
+  };
+
+  rejectAdmin = async (req: Request, res: Response): Promise<void> => {
+    await this.ordersService.rejectByAdmin(String(req.params.orderId));
+    sendResponse(res, StatusCodes.OK, "Order rejected");
+  };
+
+  shipAdmin = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.ordersService.shipByAdmin(String(req.params.orderId));
+    sendResponse(res, StatusCodes.OK, "Order marked shipped", data);
+  };
+
+  deliverAdmin = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.ordersService.deliverByAdmin(String(req.params.orderId));
+    sendResponse(res, StatusCodes.OK, "Order marked delivered", data);
+  };
+
   create = async (req: Request, res: Response): Promise<void> => {
     const data = await this.ordersService.createFromCart({
       userId: req.user!.id,

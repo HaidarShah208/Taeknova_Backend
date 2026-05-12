@@ -65,6 +65,11 @@ export class OrdersService {
     if (order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED) {
       throw new ApiError(StatusCodes.BAD_REQUEST, "Order cannot be cancelled");
     }
+    await this.releaseOrderStockAndCancel(order);
+  }
+
+  /** Restore variant stock and mark order cancelled (used by customer cancel + admin reject). */
+  private async releaseOrderStockAndCancel(order: Order): Promise<void> {
     await AppDataSource.transaction(async (manager) => {
       const variantRepo = manager.getRepository(ProductVariant);
       for (const line of order.items ?? []) {
@@ -77,6 +82,45 @@ export class OrdersService {
       order.status = OrderStatus.CANCELLED;
       await manager.getRepository(Order).save(order);
     });
+  }
+
+  async approveByAdmin(orderId: string): Promise<Order> {
+    const order = await this.orderRepository.findByIdWithItems(orderId);
+    if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");
+    if (order.status !== OrderStatus.PENDING) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Only pending orders can be accepted");
+    }
+    order.status = OrderStatus.CONFIRMED;
+    return this.orderRepository.save(order);
+  }
+
+  async rejectByAdmin(orderId: string): Promise<void> {
+    const order = await this.orderRepository.findByIdWithItems(orderId);
+    if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");
+    if (order.status !== OrderStatus.PENDING) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Only pending orders can be rejected");
+    }
+    await this.releaseOrderStockAndCancel(order);
+  }
+
+  async shipByAdmin(orderId: string): Promise<Order> {
+    const order = await this.orderRepository.findByIdWithItems(orderId);
+    if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");
+    if (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PROCESSING) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Order must be confirmed before shipping");
+    }
+    order.status = OrderStatus.SHIPPED;
+    return this.orderRepository.save(order);
+  }
+
+  async deliverByAdmin(orderId: string): Promise<Order> {
+    const order = await this.orderRepository.findByIdWithItems(orderId);
+    if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");
+    if (order.status !== OrderStatus.SHIPPED) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Order must be shipped before marking delivered");
+    }
+    order.status = OrderStatus.DELIVERED;
+    return this.orderRepository.save(order);
   }
 
   async createFromCart(params: {
@@ -137,7 +181,8 @@ export class OrdersService {
 
       const order = orderRepo.create({
         userId: params.userId,
-        status: OrderStatus.CONFIRMED,
+        /** Awaiting admin approval before fulfillment (see admin approve / ship flows). */
+        status: OrderStatus.PENDING,
         paymentStatus: PaymentStatus.PAID,
         shippingAddressSnapshot: addressSnapshot(address),
         currency: "USD",
