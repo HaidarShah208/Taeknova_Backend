@@ -33,4 +33,13 @@ export class OrderRepository {
       take: limit,
     });
   }
+
+  async findAllPaginated(page: number, limit: number): Promise<[Order[], number]> {
+    return this.repo.findAndCount({
+      relations: ["items", "user"],
+      order: { createdAt: "DESC" },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
 }

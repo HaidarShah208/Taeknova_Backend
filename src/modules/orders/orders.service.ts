@@ -42,6 +42,14 @@ export class OrdersService {
     };
   }
 
+  async listAllForAdmin(page: number, limit: number) {
+    const [items, total] = await this.orderRepository.findAllPaginated(page, limit);
+    return {
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
+    };
+  }
+
   async getMine(userId: string, orderId: string) {
     const order = await this.orderRepository.findByIdAndUser(orderId, userId);
     if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");

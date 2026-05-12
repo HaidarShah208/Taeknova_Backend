@@ -12,6 +12,12 @@ export class OrdersController {
     sendResponse(res, StatusCodes.OK, "Orders retrieved", data);
   };
 
+  listAllAdmin = async (req: Request, res: Response): Promise<void> => {
+    const q = req.query as { page?: string; limit?: string };
+    const data = await this.ordersService.listAllForAdmin(Number(q.page) || 1, Number(q.limit) || 20);
+    sendResponse(res, StatusCodes.OK, "Orders retrieved", data);
+  };
+
   create = async (req: Request, res: Response): Promise<void> => {
     const data = await this.ordersService.createFromCart({
       userId: req.user!.id,
