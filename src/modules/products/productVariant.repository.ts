@@ -17,6 +17,10 @@ export class ProductVariantRepository {
     return this.repo.findOne({ where: { id } });
   }
 
+  findByIdWithProduct(id: string): Promise<ProductVariant | null> {
+    return this.repo.findOne({ where: { id }, relations: ["product"] });
+  }
+
   async findByProduct(productId: string): Promise<ProductVariant[]> {
     return this.repo.find({ where: { productId } });
   }

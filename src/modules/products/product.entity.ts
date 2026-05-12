@@ -2,11 +2,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from "typeorm
 import { BaseEntity } from "@database/entities/BaseEntity";
 import { Category } from "@modules/categories/category.entity";
 import { ProductStatus, StockStatus } from "@modules/products/product.types";
-import { User } from "@modules/users/user.entity";
 import { ProductVariant } from "@modules/products/productVariant.entity";
+import { Review } from "@modules/reviews/review.entity";
+import { User } from "@modules/users/user.entity";
+import { WishlistItem } from "@modules/wishlist/wishlistItem.entity";
 
 @Entity("products")
 @Index(["name", "status"])
+@Index(["status", "isFeatured"])
 export class Product extends BaseEntity {
   @Column({ type: "varchar", length: 180 })
   name!: string;
@@ -49,4 +52,10 @@ export class Product extends BaseEntity {
 
   @OneToMany(() => ProductVariant, (variant) => variant.product, { cascade: true })
   variants!: ProductVariant[];
+
+  @OneToMany(() => Review, (review) => review.product)
+  reviews!: Review[];
+
+  @OneToMany(() => WishlistItem, (w) => w.product)
+  wishlistItems!: WishlistItem[];
 }

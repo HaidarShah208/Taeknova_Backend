@@ -51,4 +51,19 @@ export class AuthController {
     res.clearCookie("refreshToken");
     sendResponse(res, StatusCodes.OK, "Logout successful");
   };
+
+  register = async (req: Request, res: Response): Promise<void> => {
+    const { fullName, email, password } = req.body;
+    const data = await this.authService.register(fullName, email, password);
+    res.cookie("refreshToken", data.refreshToken, {
+      httpOnly: true,
+      secure: env.COOKIE_SECURE,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    sendResponse(res, StatusCodes.CREATED, "Account created", {
+      accessToken: data.accessToken,
+      user: data.user,
+    });
+  };
 }

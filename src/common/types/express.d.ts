@@ -1,4 +1,5 @@
 import { UserRole } from "@common/constants/roles";
+import type { PaginationQuery } from "@common/middleware/pagination";
 
 declare global {
   namespace Express {
@@ -7,6 +8,7 @@ declare global {
         id: string;
         role: UserRole;
       };
+      pagination?: PaginationQuery;
     }
   }
 }

@@ -25,6 +25,13 @@ export class CategoryRepository {
     return this.repo.findOne({ where: { slug } });
   }
 
+  findPublicActive(): Promise<Category[]> {
+    return this.repo.find({
+      where: { isActive: true },
+      order: { name: "ASC" },
+    });
+  }
+
   deleteById(id: string): Promise<void> {
     return this.repo.delete({ id }).then(() => undefined);
   }

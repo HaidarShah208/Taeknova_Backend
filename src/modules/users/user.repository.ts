@@ -31,4 +31,29 @@ export class UserRepository {
   async findById(id: string): Promise<User | null> {
     return this.repo.findOne({ where: { id } });
   }
+
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatarUrl: true,
+        passwordHash: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async updatePartial(id: string, data: Partial<Pick<User, "fullName" | "avatarUrl">>): Promise<void> {
+    await this.repo.update({ id }, data);
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.repo.update({ id }, { passwordHash });
+  }
 }

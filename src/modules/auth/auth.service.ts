@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { StatusCodes } from "http-status-codes";
+import { UserRole } from "@common/constants/roles";
 import { ApiError } from "@common/exceptions/ApiError";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@common/utils/jwt";
 import { UserRepository } from "@modules/users/user.repository";
@@ -38,6 +39,33 @@ export class AuthService {
     return {
       accessToken: signAccessToken({ id: user.id, role: user.role }),
       refreshToken: signRefreshToken({ id: user.id, role: user.role }),
+    };
+  }
+
+  async register(fullName: string, email: string, password: string) {
+    const normalized = email.toLowerCase();
+    const existing = await this.userRepository.findByEmail(normalized);
+    if (existing) throw new ApiError(StatusCodes.CONFLICT, "Email already registered");
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await this.userRepository.create({
+      fullName,
+      email: normalized,
+      passwordHash,
+      role: UserRole.USER,
+      isActive: true,
+    });
+
+    const payload = { id: user.id, role: user.role };
+    return {
+      accessToken: signAccessToken(payload),
+      refreshToken: signRefreshToken(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
     };
   }
 }

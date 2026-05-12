@@ -1,14 +1,30 @@
 import { Router } from "express";
+import { addressesRouter } from "@modules/addresses/addresses.routes";
 import { authRouter } from "@modules/auth/auth.routes";
+import { cartRouter } from "@modules/cart/cart.routes";
+import { catalogRouter } from "@modules/catalog/catalog.routes";
 import { categoriesRouter } from "@modules/categories/categories.routes";
+import { checkoutRouter } from "@modules/checkout/checkout.routes";
 import { inventoryRouter } from "@modules/inventory/inventory.routes";
+import { ordersRouter } from "@modules/orders/orders.routes";
 import { productsRouter } from "@modules/products/products.routes";
+import { profileRouter } from "@modules/profile/profile.routes";
+import { reviewsRouter } from "@modules/reviews/reviews.routes";
 import { usersRouter } from "@modules/users/users.routes";
+import { wishlistRouter } from "@modules/wishlist/wishlist.routes";
 
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
+apiRouter.use("/catalog", catalogRouter);
 apiRouter.use("/users", usersRouter);
 apiRouter.use("/products", productsRouter);
 apiRouter.use("/categories", categoriesRouter);
 apiRouter.use("/inventory", inventoryRouter);
+apiRouter.use("/cart", cartRouter);
+apiRouter.use("/wishlist", wishlistRouter);
+apiRouter.use("/checkout", checkoutRouter);
+apiRouter.use("/orders", ordersRouter);
+apiRouter.use("/reviews", reviewsRouter);
+apiRouter.use("/addresses", addressesRouter);
+apiRouter.use("/profile", profileRouter);
