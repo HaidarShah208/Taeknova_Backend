@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { addressesRouter } from "@modules/addresses/addresses.routes";
+import { analyticsRouter } from "@modules/analytics/analytics.routes";
 import { authRouter } from "@modules/auth/auth.routes";
 import { cartRouter } from "@modules/cart/cart.routes";
 import { catalogRouter } from "@modules/catalog/catalog.routes";
@@ -16,6 +17,7 @@ import { wishlistRouter } from "@modules/wishlist/wishlist.routes";
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
+apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/catalog", catalogRouter);
 apiRouter.use("/users", usersRouter);
 apiRouter.use("/products", productsRouter);
