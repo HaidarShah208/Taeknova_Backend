@@ -20,4 +20,26 @@ export class UserService {
     });
     return user;
   }
+
+  async listAllUsers() {
+    return this.userRepository.listAllUsers();
+  }
+
+  async deactivateUserById(id: string, actorUserId: string) {
+    const user = await this.userRepository.findActiveUserById(id);
+    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+    if (user.id === actorUserId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "You cannot remove your own account");
+    }
+
+    if (user.role === UserRole.ADMIN) {
+      const activeAdmins = await this.userRepository.countActiveAdmins();
+      if (activeAdmins <= 1) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "At least one active admin account is required");
+      }
+    }
+
+    await this.userRepository.setActive(user.id, false);
+  }
 }

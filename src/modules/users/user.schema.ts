@@ -9,3 +9,9 @@ export const createAdminSchema = z.object({
     role: z.nativeEnum(UserRole).default(UserRole.ADMIN),
   }),
 });
+
+export const removeUserSchema = z.object({
+  params: z.object({
+    userId: z.string().uuid(),
+  }),
+});

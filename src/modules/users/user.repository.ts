@@ -1,6 +1,7 @@
 import { Repository } from "typeorm";
 import { AppDataSource } from "@database/data-source";
 import { User } from "@modules/users/user.entity";
+import { UserRole } from "@common/constants/roles";
 
 export class UserRepository {
   private readonly repo: Repository<User> = AppDataSource.getRepository(User);
@@ -55,5 +56,23 @@ export class UserRepository {
 
   async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
     await this.repo.update({ id }, { passwordHash });
+  }
+
+  async listAllUsers(): Promise<User[]> {
+    return this.repo.find({
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  async setActive(id: string, isActive: boolean): Promise<void> {
+    await this.repo.update({ id }, { isActive });
+  }
+
+  async findActiveUserById(id: string): Promise<User | null> {
+    return this.repo.findOne({ where: { id, isActive: true } });
+  }
+
+  async countActiveAdmins(): Promise<number> {
+    return this.repo.count({ where: { role: UserRole.ADMIN, isActive: true } });
   }
 }
