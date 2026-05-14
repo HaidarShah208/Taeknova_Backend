@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
+import { StatusCodes } from "http-status-codes";
+import { ApiError } from "@common/exceptions/ApiError";
 import { env } from "@config/env";
 import { UserRole } from "@common/constants/roles";
 
@@ -45,7 +47,17 @@ export function createSignedRefreshToken(payload: JwtPayload): SignedRefreshToke
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+  try {
+    return jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+  } catch (err: unknown) {
+    if (err instanceof jwt.TokenExpiredError) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Access token expired");
+    }
+    if (err instanceof jwt.JsonWebTokenError) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid access token");
+    }
+    throw err;
+  }
 }
 
 export function verifyRefreshToken(token: string): JwtRefreshPayload {

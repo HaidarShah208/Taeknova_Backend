@@ -32,8 +32,19 @@ export class CatalogService {
     };
   }
 
+  /**
+   * Returns approved products marked `isFeatured`.
+   * If none are featured (common on fresh installs), falls back to newest approved products so the storefront home section is not empty.
+   */
   async featured(limit: number) {
-    return this.catalogRepository.findFeatured(limit);
+    const featured = await this.catalogRepository.findFeatured(limit);
+    if (featured.length > 0) return featured;
+    const [items] = await this.catalogRepository.findPublicPaginated({
+      page: 1,
+      limit,
+      sort: "newest",
+    });
+    return items;
   }
 
   async getBySlug(slug: string) {
