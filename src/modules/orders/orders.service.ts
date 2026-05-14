@@ -11,6 +11,7 @@ import { ProductVariant } from "@modules/products/productVariant.entity";
 import { UploadService } from "@modules/uploads/upload.service";
 import { StatusCodes } from "http-status-codes";
 import { ApiError } from "@common/exceptions/ApiError";
+import { EmailService } from "@common/services/email.service";
 
 const FREE_SHIPPING_THRESHOLD = 150;
 const STANDARD_SHIPPING = 9.99;
@@ -38,6 +39,7 @@ export class OrdersService {
   constructor(
     private readonly orderRepository = new OrderRepository(),
     private readonly uploadService = new UploadService(),
+    private readonly emailService = new EmailService(),
   ) {}
 
   async uploadPaymentProofImage(fileBuffer: Buffer): Promise<{ url: string }> {
@@ -142,7 +144,7 @@ export class OrdersService {
     paymentMethod: CheckoutPaymentMethod;
     paymentProofUrl?: string | null;
   }): Promise<Order> {
-    return AppDataSource.transaction(async (manager) => {
+    const order = await AppDataSource.transaction(async (manager) => {
       const allowed = new Set<string>(Object.values(CheckoutPaymentMethod));
       if (!allowed.has(params.paymentMethod)) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid payment method");
@@ -249,9 +251,31 @@ export class OrdersService {
       }
 
       await cartRepo.delete({ userId: params.userId });
-      const full = await orderRepo.findOne({ where: { id: saved.id }, relations: ["items", "items.variant"] });
+      const full = await orderRepo.findOne({
+        where: { id: saved.id },
+        relations: ["items", "items.variant", "user"],
+      });
       if (!full) throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Order creation failed");
       return full;
+    });
+
+    this.notifyAdminOrderCreatedFireAndForget(order);
+
+    return order;
+  }
+
+  /**
+   * Sends admin email after the order transaction has committed.
+   * Failures are logged only — never fail the API response.
+   */
+  private notifyAdminOrderCreatedFireAndForget(order: Order): void {
+    void this.emailService.sendAdminOrderCreatedNotification(order).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[orders] Admin order notification email failed", {
+        orderId: order.id,
+        reference: order.reference,
+        error: message,
+      });
     });
   }
 }
