@@ -17,6 +17,10 @@ export class UserService {
       email: payload.email.toLowerCase(),
       passwordHash,
       role: payload.role,
+      isActive: true,
+      emailVerifiedAt: new Date(),
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
     });
     return user;
   }

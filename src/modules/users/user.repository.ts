@@ -22,6 +22,7 @@ export class UserRepository {
             passwordHash: true,
             role: true,
             isActive: true,
+            emailVerifiedAt: true,
             createdAt: true,
             updatedAt: true,
           }
@@ -31,6 +32,35 @@ export class UserRepository {
 
   async findById(id: string): Promise<User | null> {
     return this.repo.findOne({ where: { id } });
+  }
+
+  async findByEmailVerificationToken(token: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { emailVerificationToken: token },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+        emailVerifiedAt: true,
+        emailVerificationToken: true,
+        emailVerificationExpiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async markEmailVerified(userId: string): Promise<void> {
+    await this.repo.update(
+      { id: userId },
+      {
+        emailVerifiedAt: new Date(),
+        emailVerificationToken: null,
+        emailVerificationExpiresAt: null,
+      },
+    );
   }
 
   async findByIdWithPassword(id: string): Promise<User | null> {
@@ -44,6 +74,7 @@ export class UserRepository {
         passwordHash: true,
         role: true,
         isActive: true,
+        emailVerifiedAt: true,
         createdAt: true,
         updatedAt: true,
       },

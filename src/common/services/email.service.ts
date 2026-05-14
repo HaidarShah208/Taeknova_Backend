@@ -7,17 +7,19 @@ import type { OrderItem } from "@modules/orders/orderItem.entity";
 import type { User } from "@modules/users/user.entity";
 
 import { buildAdminOrderCreatedEmail } from "@common/templates/order-created.template";
+import { buildVerifyEmailContent } from "@common/templates/verify-email.template";
 
 type OrderWithNotifyRelations = Order & { user: User; items: OrderItem[] };
 
-function isMailConfigured(): boolean {
+/** Enough to send mail to end users (verification, receipts, etc.). */
+export function isSmtpTransportConfigured(): boolean {
   return Boolean(
-    env.MAIL_HOST &&
-      env.MAIL_PORT !== undefined &&
-      env.MAIL_USER &&
-      env.MAIL_PASS &&
-      env.ADMIN_EMAIL,
+    env.MAIL_HOST && env.MAIL_PORT !== undefined && env.MAIL_USER && env.MAIL_PASS,
   );
+}
+
+function isAdminOrderMailConfigured(): boolean {
+  return isSmtpTransportConfigured() && Boolean(env.ADMIN_EMAIL);
 }
 
 /**
@@ -27,7 +29,7 @@ export class EmailService {
   private transporter: Transporter | null = null;
 
   private getTransporter(): Transporter | null {
-    if (!isMailConfigured()) return null;
+    if (!isSmtpTransportConfigured()) return null;
     if (!this.transporter) {
       this.transporter = nodemailer.createTransport({
         host: env.MAIL_HOST,
@@ -54,7 +56,7 @@ export class EmailService {
   }): Promise<void> {
     const transport = this.getTransporter();
     if (!transport) {
-      console.warn("[email] sendEmail skipped: MAIL_* / ADMIN_EMAIL not fully configured");
+      console.warn("[email] sendEmail skipped: MAIL_HOST / MAIL_PORT / MAIL_USER / MAIL_PASS not fully configured");
       return;
     }
 
@@ -70,8 +72,21 @@ export class EmailService {
     });
   }
 
+  async sendVerifyEmailAddress(params: { to: string; fullName: string; verifyUrl: string }): Promise<void> {
+    const { subject, html, text } = buildVerifyEmailContent({
+      fullName: params.fullName,
+      verifyUrl: params.verifyUrl,
+    });
+    await this.sendEmail({ to: params.to, subject, html, text });
+  }
+
   /** Admin alert when a customer order is placed (HTML + plain text). */
   async sendAdminOrderCreatedNotification(order: Order): Promise<void> {
+    if (!isAdminOrderMailConfigured()) {
+      console.warn("[email] Order admin email skipped: set ADMIN_EMAIL and full SMTP credentials");
+      return;
+    }
+
     const o = order as Partial<OrderWithNotifyRelations>;
     if (!o.user?.email || !o.items?.length) {
       console.warn("[email] Order created email skipped: missing user or items", { orderId: order.id });

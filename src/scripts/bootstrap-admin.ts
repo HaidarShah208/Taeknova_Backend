@@ -44,6 +44,9 @@ async function main(): Promise<void> {
       passwordHash,
       role: UserRole.ADMIN,
       isActive: true,
+      emailVerifiedAt: new Date(),
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
     });
     await repo.save(user);
 

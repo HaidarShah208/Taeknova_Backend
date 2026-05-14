@@ -69,13 +69,29 @@ export class AuthController {
 
   register = async (req: Request, res: Response): Promise<void> => {
     const { fullName, email, password } = req.body;
-    const data = await this.authService.register(fullName, email, password);
-    const expMs = decodeTokenExpMs(data.refreshToken);
+    const result = await this.authService.register(fullName, email, password);
+
+    if (result.status === "pending_verification") {
+      sendResponse(res, StatusCodes.CREATED, result.message, {
+        requiresEmailVerification: true,
+        email: result.email,
+      });
+      return;
+    }
+
+    const expMs = decodeTokenExpMs(result.refreshToken);
     const maxAge = expMs ? Math.max(0, expMs - Date.now()) : 7 * 24 * 60 * 60 * 1000;
-    res.cookie("refreshToken", data.refreshToken, refreshCookieOptions(maxAge));
-    sendResponse(res, StatusCodes.CREATED, "Account created", {
-      accessToken: data.accessToken,
-      user: data.user,
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions(maxAge));
+    sendResponse(res, StatusCodes.CREATED, result.message, {
+      requiresEmailVerification: false,
+      accessToken: result.accessToken,
+      user: result.user,
     });
+  };
+
+  verifyEmail = async (req: Request, res: Response): Promise<void> => {
+    const token = String(req.query.token ?? "");
+    const data = await this.authService.verifyEmailWithToken(token);
+    sendResponse(res, StatusCodes.OK, data.message, { verified: true });
   };
 }

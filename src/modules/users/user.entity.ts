@@ -29,6 +29,16 @@ export class User extends BaseEntity {
   @Column({ type: "boolean", default: true })
   isActive!: boolean;
 
+  /** When set, the user may sign in (email link confirmed or legacy auto-verified). */
+  @Column({ type: "timestamptz", nullable: true })
+  emailVerifiedAt!: Date | null;
+
+  @Column({ type: "varchar", length: 64, nullable: true })
+  emailVerificationToken!: string | null;
+
+  @Column({ type: "timestamptz", nullable: true })
+  emailVerificationExpiresAt!: Date | null;
+
   @OneToMany(() => Product, (product) => product.createdBy)
   products!: Product[];
 
