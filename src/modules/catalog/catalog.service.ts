@@ -34,7 +34,8 @@ export class CatalogService {
 
   /**
    * Returns approved products marked `isFeatured`.
-   * If none are featured (common on fresh installs), falls back to newest approved products so the storefront home section is not empty.
+   * If none are featured, falls back to highest base price first so the home "featured" strip
+   * does not duplicate the "new arrivals" strip (which uses `sort=newest`).
    */
   async featured(limit: number) {
     const featured = await this.catalogRepository.findFeatured(limit);
@@ -42,7 +43,7 @@ export class CatalogService {
     const [items] = await this.catalogRepository.findPublicPaginated({
       page: 1,
       limit,
-      sort: "newest",
+      sort: "price_desc",
     });
     return items;
   }
