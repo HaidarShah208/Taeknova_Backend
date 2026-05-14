@@ -8,6 +8,7 @@ import { categoriesRouter } from "@modules/categories/categories.routes";
 import { checkoutRouter } from "@modules/checkout/checkout.routes";
 import { inventoryRouter } from "@modules/inventory/inventory.routes";
 import { ordersRouter } from "@modules/orders/orders.routes";
+import { publicRouter } from "@modules/public/public.routes";
 import { productsRouter } from "@modules/products/products.routes";
 import { profileRouter } from "@modules/profile/profile.routes";
 import { reviewsRouter } from "@modules/reviews/reviews.routes";
@@ -17,6 +18,7 @@ import { wishlistRouter } from "@modules/wishlist/wishlist.routes";
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
+apiRouter.use("/public", publicRouter);
 apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/catalog", catalogRouter);
 apiRouter.use("/users", usersRouter);
