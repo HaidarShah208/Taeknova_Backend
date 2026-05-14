@@ -26,4 +26,14 @@ export class RefreshTokenRepository {
   async revokeByJti(jti: string): Promise<void> {
     await this.repo.update({ jti }, { revokedAt: new Date() });
   }
+
+  async revokeAllActiveForUser(userId: string): Promise<void> {
+    await this.repo
+      .createQueryBuilder()
+      .update(RefreshToken)
+      .set({ revokedAt: new Date() })
+      .where("userId = :userId", { userId })
+      .andWhere("revokedAt IS NULL")
+      .execute();
+  }
 }

@@ -94,4 +94,17 @@ export class AuthController {
     const data = await this.authService.verifyEmailWithToken(token);
     sendResponse(res, StatusCodes.OK, data.message, { verified: true });
   };
+
+  forgotPassword = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.authService.forgotPassword(String(req.body.email ?? ""));
+    sendResponse(res, StatusCodes.OK, data.message, { sent: true });
+  };
+
+  resetPassword = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.authService.resetPassword(
+      String(req.body.token ?? ""),
+      String(req.body.password ?? ""),
+    );
+    sendResponse(res, StatusCodes.OK, data.message, { reset: true });
+  };
 }

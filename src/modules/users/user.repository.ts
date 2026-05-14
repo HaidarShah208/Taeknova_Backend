@@ -63,6 +63,36 @@ export class UserRepository {
     );
   }
 
+  async findByPasswordResetToken(token: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { passwordResetToken: token },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        passwordResetToken: true,
+        passwordResetExpiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async setPasswordResetFields(userId: string, token: string, expiresAt: Date): Promise<void> {
+    await this.repo.update({ id: userId }, { passwordResetToken: token, passwordResetExpiresAt: expiresAt });
+  }
+
+  async updatePasswordAndClearResetToken(userId: string, passwordHash: string): Promise<void> {
+    await this.repo.update(
+      { id: userId },
+      {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+      },
+    );
+  }
+
   async findByIdWithPassword(id: string): Promise<User | null> {
     return this.repo.findOne({
       where: { id },

@@ -7,6 +7,7 @@ import type { OrderItem } from "@modules/orders/orderItem.entity";
 import type { User } from "@modules/users/user.entity";
 
 import { buildAdminOrderCreatedEmail } from "@common/templates/order-created.template";
+import { buildPasswordResetEmailContent } from "@common/templates/password-reset.template";
 import { buildVerifyEmailContent } from "@common/templates/verify-email.template";
 
 type OrderWithNotifyRelations = Order & { user: User; items: OrderItem[] };
@@ -76,6 +77,14 @@ export class EmailService {
     const { subject, html, text } = buildVerifyEmailContent({
       fullName: params.fullName,
       verifyUrl: params.verifyUrl,
+    });
+    await this.sendEmail({ to: params.to, subject, html, text });
+  }
+
+  async sendPasswordResetEmail(params: { to: string; fullName: string; resetUrl: string }): Promise<void> {
+    const { subject, html, text } = buildPasswordResetEmailContent({
+      fullName: params.fullName,
+      resetUrl: params.resetUrl,
     });
     await this.sendEmail({ to: params.to, subject, html, text });
   }

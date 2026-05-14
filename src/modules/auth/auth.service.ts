@@ -206,4 +206,70 @@ export class AuthService {
     await this.userRepository.markEmailVerified(user.id);
     return { message: "Your email has been verified. You can sign in." };
   }
+
+  private static readonly PASSWORD_RESET_TOKEN_BYTES = 32;
+  private static readonly PASSWORD_RESET_EXPIRY_HOURS = 1;
+
+  async forgotPassword(rawEmail: string): Promise<{ message: string }> {
+    const generic =
+      "If an account exists for that email, we sent password reset instructions.";
+
+    const normalized = rawEmail.toLowerCase().trim();
+    if (!normalized) {
+      return { message: generic };
+    }
+
+    const user = await this.userRepository.findByEmail(normalized);
+    if (!user || !user.isActive) {
+      return { message: generic };
+    }
+
+    if (!isSmtpTransportConfigured()) {
+      console.warn("[auth] forgot-password: SMTP not configured; no reset email will be sent");
+      return { message: generic };
+    }
+
+    const token = randomBytes(AuthService.PASSWORD_RESET_TOKEN_BYTES).toString("hex");
+    const expiresAt = new Date(
+      Date.now() + AuthService.PASSWORD_RESET_EXPIRY_HOURS * 60 * 60 * 1000,
+    );
+    await this.userRepository.setPasswordResetFields(user.id, token, expiresAt);
+
+    const base = env.APP_ORIGIN.replace(/\/$/, "");
+    const resetUrl = `${base}/reset-password?token=${encodeURIComponent(token)}`;
+
+    void this.emailService
+      .sendPasswordResetEmail({ to: user.email, fullName: user.fullName, resetUrl })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[auth] Password reset email failed", { userId: user.id, error: message });
+      });
+
+    return { message: generic };
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<{ message: string }> {
+    const token = rawToken.trim();
+    if (!token) throw new ApiError(StatusCodes.BAD_REQUEST, "Reset token is required");
+
+    const user = await this.userRepository.findByPasswordResetToken(token);
+    if (!user || !user.passwordResetExpiresAt) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Invalid or expired reset link. Request a new one from the forgot password page.",
+      );
+    }
+    if (user.passwordResetExpiresAt.getTime() < Date.now()) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Invalid or expired reset link. Request a new one from the forgot password page.",
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.userRepository.updatePasswordAndClearResetToken(user.id, passwordHash);
+    await this.refreshTokenRepository.revokeAllActiveForUser(user.id);
+
+    return { message: "Your password has been updated. You can sign in." };
+  }
 }

@@ -39,6 +39,12 @@ export class User extends BaseEntity {
   @Column({ type: "timestamptz", nullable: true })
   emailVerificationExpiresAt!: Date | null;
 
+  @Column({ type: "varchar", length: 64, nullable: true })
+  passwordResetToken!: string | null;
+
+  @Column({ type: "timestamptz", nullable: true })
+  passwordResetExpiresAt!: Date | null;
+
   @OneToMany(() => Product, (product) => product.createdBy)
   products!: Product[];
 
