@@ -5,6 +5,7 @@ import { authRouter } from "@modules/auth/auth.routes";
 import { cartRouter } from "@modules/cart/cart.routes";
 import { catalogRouter } from "@modules/catalog/catalog.routes";
 import { categoriesRouter } from "@modules/categories/categories.routes";
+import { contactRouter } from "@modules/contact/contact.routes";
 import { checkoutRouter } from "@modules/checkout/checkout.routes";
 import { inventoryRouter } from "@modules/inventory/inventory.routes";
 import { ordersRouter } from "@modules/orders/orders.routes";
@@ -19,6 +20,7 @@ export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/public", publicRouter);
+apiRouter.use("/contact", contactRouter);
 apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/catalog", catalogRouter);
 apiRouter.use("/users", usersRouter);

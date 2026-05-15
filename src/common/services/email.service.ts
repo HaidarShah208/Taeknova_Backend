@@ -6,6 +6,7 @@ import type { Order } from "@modules/orders/order.entity";
 import type { OrderItem } from "@modules/orders/orderItem.entity";
 import type { User } from "@modules/users/user.entity";
 
+import { buildAdminContactFormEmail } from "@common/templates/contact-form.template";
 import { buildAdminOrderCreatedEmail } from "@common/templates/order-created.template";
 import { buildPasswordResetEmailContent } from "@common/templates/password-reset.template";
 import { buildVerifyEmailContent } from "@common/templates/verify-email.template";
@@ -87,6 +88,29 @@ export class EmailService {
       resetUrl: params.resetUrl,
     });
     await this.sendEmail({ to: params.to, subject, html, text });
+  }
+
+  /** Admin alert when a visitor submits the contact form. */
+  async sendAdminContactFormNotification(params: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    subject: string;
+    message: string;
+  }): Promise<void> {
+    if (!isAdminOrderMailConfigured()) {
+      console.warn("[email] Contact form email skipped: set ADMIN_EMAIL and full SMTP credentials");
+      return;
+    }
+
+    const { subject, html, text } = buildAdminContactFormEmail(params);
+    await this.sendEmail({
+      to: env.ADMIN_EMAIL!,
+      subject,
+      html,
+      text,
+      replyTo: params.email,
+    });
   }
 
   /** Admin alert when a customer order is placed (HTML + plain text). */
