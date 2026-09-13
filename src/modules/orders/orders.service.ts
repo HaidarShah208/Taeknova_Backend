@@ -10,6 +10,7 @@ import { Product } from "@modules/products/product.entity";
 import { ProductVariant } from "@modules/products/productVariant.entity";
 import { UploadService } from "@modules/uploads/upload.service";
 import { StatusCodes } from "http-status-codes";
+import { waitUntil } from "@vercel/functions";
 import { ApiError } from "@common/exceptions/ApiError";
 import { EmailService } from "@common/services/email.service";
 
@@ -269,13 +270,15 @@ export class OrdersService {
    * Failures are logged only — never fail the API response.
    */
   private notifyAdminOrderCreatedFireAndForget(order: Order): void {
-    void this.emailService.sendAdminOrderCreatedNotification(order).catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[orders] Admin order notification email failed", {
-        orderId: order.id,
-        reference: order.reference,
-        error: message,
-      });
-    });
+    waitUntil(
+      this.emailService.sendAdminOrderCreatedNotification(order).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[orders] Admin order notification email failed", {
+          orderId: order.id,
+          reference: order.reference,
+          error: message,
+        });
+      }),
+    );
   }
 }

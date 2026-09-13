@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
 import { StatusCodes } from "http-status-codes";
+import { waitUntil } from "@vercel/functions";
 import { UserRole } from "@common/constants/roles";
 import { ApiError } from "@common/exceptions/ApiError";
 import { EmailService, isSmtpTransportConfigured } from "@common/services/email.service";
@@ -153,12 +154,14 @@ export class AuthService {
     if (smtpReady && token && expiresAt) {
       const base = env.APP_ORIGIN.replace(/\/$/, "");
       const verifyUrl = `${base}/verify-email?token=${encodeURIComponent(token)}`;
-      void this.emailService
-        .sendVerifyEmailAddress({ to: user.email, fullName: user.fullName, verifyUrl })
-        .catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : String(err);
-          console.error("[auth] Verification email failed", { userId: user.id, error: message });
-        });
+      waitUntil(
+        this.emailService
+          .sendVerifyEmailAddress({ to: user.email, fullName: user.fullName, verifyUrl })
+          .catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error("[auth] Verification email failed", { userId: user.id, error: message });
+          }),
+      );
 
       return {
         status: "pending_verification",
@@ -238,12 +241,14 @@ export class AuthService {
     const base = env.APP_ORIGIN.replace(/\/$/, "");
     const resetUrl = `${base}/reset-password?token=${encodeURIComponent(token)}`;
 
-    void this.emailService
-      .sendPasswordResetEmail({ to: user.email, fullName: user.fullName, resetUrl })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[auth] Password reset email failed", { userId: user.id, error: message });
-      });
+    waitUntil(
+      this.emailService
+        .sendPasswordResetEmail({ to: user.email, fullName: user.fullName, resetUrl })
+        .catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error("[auth] Password reset email failed", { userId: user.id, error: message });
+        }),
+    );
 
     return { message: generic };
   }
