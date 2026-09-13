@@ -24,6 +24,12 @@ ordersRouter.get(
   validate(orderListQuerySchema),
   asyncHandler(ordersController.listAllAdmin),
 );
+ordersRouter.get(
+  "/admin/:orderId",
+  roleGuard(UserRole.ADMIN),
+  validate(orderIdParamSchema),
+  asyncHandler(ordersController.getOneAdmin),
+);
 ordersRouter.patch(
   "/admin/:orderId/approve",
   roleGuard(UserRole.ADMIN),

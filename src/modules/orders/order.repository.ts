@@ -24,6 +24,13 @@ export class OrderRepository {
     });
   }
 
+  async findByIdWithDetails(id: string): Promise<Order | null> {
+    return this.repo.findOne({
+      where: { id },
+      relations: ["items", "items.variant", "items.variant.product", "user"],
+    });
+  }
+
   async findByUserPaginated(userId: string, page: number, limit: number): Promise<[Order[], number]> {
     return this.repo.findAndCount({
       where: { userId },

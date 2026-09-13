@@ -70,6 +70,12 @@ export class OrdersService {
     return order;
   }
 
+  async getOneForAdmin(orderId: string) {
+    const order = await this.orderRepository.findByIdWithDetails(orderId);
+    if (!order) throw new ApiError(StatusCodes.NOT_FOUND, "Order not found");
+    return order;
+  }
+
   async cancelMine(userId: string, orderId: string): Promise<void> {
     const order = await this.orderRepository.findByIdWithItems(orderId);
     if (!order || order.userId !== userId) {

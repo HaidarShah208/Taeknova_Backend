@@ -18,6 +18,11 @@ export class OrdersController {
     sendResponse(res, StatusCodes.OK, "Orders retrieved", data);
   };
 
+  getOneAdmin = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.ordersService.getOneForAdmin(String(req.params.orderId));
+    sendResponse(res, StatusCodes.OK, "Order retrieved", data);
+  };
+
   approveAdmin = async (req: Request, res: Response): Promise<void> => {
     const data = await this.ordersService.approveByAdmin(String(req.params.orderId));
     sendResponse(res, StatusCodes.OK, "Order accepted", data);
