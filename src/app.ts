@@ -13,6 +13,10 @@ import { apiRouter } from "@routes/index";
 export function createApp(): Express {
   const app = express();
 
+  // Behind Vercel's proxy, req.ip/X-Forwarded-For must be explicitly trusted,
+  // otherwise express-rate-limit refuses to start (ERR_ERL_FORWARDED_HEADER).
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(
     cors({
